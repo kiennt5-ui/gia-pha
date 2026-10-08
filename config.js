@@ -6,7 +6,7 @@ export const CONFIG = {
   familyName: "Họ Nguyễn",
 
   // Dòng nhỏ dưới tên (quê quán, chi, nhánh…). Để "" nếu không cần.
-  subtitle: "Làng Phú Thọ, xã An Hòa",
+  subtitle: "",
 
   // Email của tài khoản nhập liệu chung đã tạo trong Firebase
   // (Authentication → Users). Phải trùng với email trong firestore.rules.
@@ -18,11 +18,11 @@ export const CONFIG = {
   // Dán cấu hình Firebase vào đây (Project settings → Your apps → Web app).
   // Khi apiKey còn trống, trang chạy BẢN THỬ: dữ liệu mẫu, chỉ lưu trên máy đang mở.
   firebase: {
-    apiKey: "",
-    authDomain: "",
-    projectId: "",
-    storageBucket: "",
-    messagingSenderId: "",
-    appId: ""
+    apiKey: "AIzaSyA8h_-7ZELsJkO3bbqRlN8xCJHf_oL1QlE",
+    authDomain: "gia-pha-246c2.firebaseapp.com",
+    projectId: "gia-pha-246c2",
+    storageBucket: "gia-pha-246c2.firebasestorage.app",
+    messagingSenderId: "978959654415",
+    appId: "1:978959654415:web:7250c15c076ec24b088d7a"
   }
 };
