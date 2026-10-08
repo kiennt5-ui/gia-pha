@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Gia phả</title>
+  <meta name="description" content="Cây gia phả dòng họ">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%238C1D18'/%3E%3Cpath d='M32 14v36M32 30l-12 10M32 30l12 10M32 22l-9-6M32 22l9-6' stroke='%23C9A04A' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&family=Be+Vietnam+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+</head>
+<body>
+  <header class="bia">
+    <div class="bia-trai">
+      <div class="an-son" aria-hidden="true">譜</div>
+      <div>
+        <h1 id="ten-dong-ho">Gia phả</h1>
+        <p id="phu-de"></p>
+      </div>
+    </div>
+    <div class="tim">
+      <input type="search" id="tim" placeholder="Tìm theo tên" autocomplete="off" aria-label="Tìm người trong gia phả">
+      <ul id="ket-qua" hidden></ul>
+    </div>
+    <button id="nut-sua" class="nut nut-vang" type="button">Chỉnh sửa</button>
+  </header>
+
+  <div id="bang-demo" class="bang-demo" hidden></div>
+
+  <nav class="thanh-cong-cu" aria-label="Công cụ">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" data-view="cay" aria-selected="true">Cây gia phả</button>
+      <button type="button" role="tab" data-view="gio" aria-selected="false">Ngày giỗ</button>
+    </div>
+    <div class="loc" role="group" aria-label="Lọc theo tình trạng">
+      <button type="button" data-loc="tat-ca" aria-pressed="true">Tất cả</button>
+      <button type="button" data-loc="song" aria-pressed="false">Còn sống</button>
+      <button type="button" data-loc="mat" aria-pressed="false">Đã mất</button>
+    </div>
+    <button id="nut-them" class="nut nut-nho" type="button" hidden>+ Thêm người</button>
+    <div class="thong-ke" id="thong-ke"></div>
+  </nav>
+
+  <main>
+    <section id="view-cay" class="view-cay">
+      <svg id="cay" aria-label="Sơ đồ cây gia phả. Kéo để di chuyển, cuộn hoặc chụm hai ngón để phóng to."></svg>
+      <div class="dieu-khien-zoom">
+        <button type="button" id="zoom-in" aria-label="Phóng to">+</button>
+        <button type="button" id="zoom-out" aria-label="Thu nhỏ">−</button>
+        <button type="button" id="zoom-fit" aria-label="Xem toàn bộ cây">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div id="trong" class="trong" hidden></div>
+    </section>
+    <section id="view-gio" class="view-gio" hidden></section>
+    <aside id="chi-tiet" class="chi-tiet" hidden aria-live="polite"></aside>
+  </main>
+
+  <!-- Hộp nhập mật khẩu -->
+  <dialog id="hop-mat-khau">
+    <form id="form-mk" novalidate>
+      <h2>Mở chỉnh sửa</h2>
+      <p class="form-phu">Nhập mật khẩu chung của dòng họ để thêm hoặc sửa thông tin.</p>
+      <label>Mật khẩu
+        <input type="password" name="mk" autocomplete="current-password">
+      </label>
+      <p class="loi" id="mk-loi" role="alert"></p>
+      <div class="hang-nut">
+        <button type="button" class="nut" data-huy>Hủy</button>
+        <button type="submit" class="nut nut-chinh">Mở chỉnh sửa</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Hộp thêm / sửa người -->
+  <dialog id="hop-form">
+    <form id="form-nguoi" novalidate>
+      <h2 id="form-tieu-de">Thêm người</h2>
+      <p id="form-phu" class="form-phu"></p>
+
+      <label>Họ và tên
+        <input name="ten" maxlength="80" placeholder="Nguyễn Văn Minh">
+      </label>
+
+      <div class="hang-2">
+        <fieldset>
+          <legend>Giới tính</legend>
+          <label><input type="radio" name="gioiTinh" value="nam" checked> Nam</label>
+          <label><input type="radio" name="gioiTinh" value="nu"> Nữ</label>
+        </fieldset>
+        <label><span>Năm sinh <span class="goi-y">(nếu biết)</span></span>
+          <input name="namSinh" inputmode="numeric" maxlength="4" placeholder="1950">
+        </label>
+      </div>
+
+      <fieldset>
+        <legend>Tình trạng</legend>
+        <label><input type="radio" name="tinhTrang" value="song" checked> Còn sống</label>
+        <label><input type="radio" name="tinhTrang" value="mat"> Đã mất</label>
+      </fieldset>
+
+      <div id="nhom-mat" class="nhom-mat" hidden>
+        <label>Năm mất
+          <input name="namMat" inputmode="numeric" maxlength="4" placeholder="1990">
+        </label>
+        <label><span>Ngày giỗ <span class="goi-y">(âm lịch)</span></span>
+          <input name="ngayGio" maxlength="24" placeholder="15/7">
+        </label>
+        <label class="rong">Nơi an táng
+          <input name="noiAnTang" maxlength="120" placeholder="Nghĩa trang làng Phú Thọ">
+        </label>
+      </div>
+
+      <div id="nhom-cha-me" class="hang-2">
+        <label>Con của
+          <select name="parentId"></select>
+        </label>
+        <label id="nhan-cha-me-2"><span id="chu-cha-me-2">Mẹ</span>
+          <select name="parent2Id"></select>
+        </label>
+      </div>
+
+      <label><span>Link ảnh <span class="goi-y">(không bắt buộc)</span></span>
+        <input name="anh" type="url" maxlength="500" placeholder="https://…">
+      </label>
+
+      <label>Ghi chú
+        <textarea name="ghiChu" rows="3" maxlength="1000" placeholder="Công việc, quê quán, chuyện đáng nhớ…"></textarea>
+      </label>
+
+      <p class="loi" id="form-loi" role="alert"></p>
+      <div class="hang-nut">
+        <button type="button" class="nut" data-huy>Hủy</button>
+        <button type="submit" class="nut nut-chinh" id="form-luu">Lưu</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="thong-bao" class="thong-bao" role="status"></div>
+
+  <noscript><p style="padding:20px">Trang gia phả cần bật JavaScript để hiển thị.</p></noscript>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
