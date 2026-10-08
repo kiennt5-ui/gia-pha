@@ -244,6 +244,26 @@ main { flex: 1; position: relative; display: flex; min-height: 0; }
 }
 .ct-nhom button:hover { color: var(--son); }
 .ct-nhom button span { color: var(--chu-phu); font-size: 13px; white-space: nowrap; }
+.ct-nhom .so {
+  flex: none; width: 22px; height: 22px; margin-right: -2px;
+  display: grid; place-items: center;
+  border-radius: 50%; background: var(--kim-nhat); color: #5A430F;
+  font-size: 12px; font-weight: 600;
+}
+.ct-nhom .ten-ds { flex: 1; min-width: 0; color: inherit; font-size: inherit; white-space: normal; }
+.ct-nhom li.co-sx { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #EEE8DE; }
+.ct-nhom li.co-sx > button { border-bottom: 0; }
+.sap-xep { display: flex; gap: 4px; flex: none; }
+.sap-xep button {
+  width: 32px; height: 32px; padding: 0;
+  display: grid; place-items: center;
+  border: 1px solid var(--vien); border-radius: 6px; background: var(--the);
+  color: var(--muc); font-size: 15px; cursor: pointer;
+}
+.sap-xep button:hover { border-color: var(--son); color: var(--son); }
+.sap-xep button.an { visibility: hidden; }
+.goi-y-sx { margin: 0 0 4px; color: var(--chu-phu); font-size: 12.5px; }
+.hang-2 .rong { grid-column: 1 / -1; }
 .ghi-chu { margin: 18px 0 0; padding: 10px 12px; border-radius: 8px; background: #F6F2EA; font-size: 14px; white-space: pre-wrap; }
 .ct-sua { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; padding-top: 16px; border-top: 1px dashed var(--vien); }
 

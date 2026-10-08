@@ -43,6 +43,11 @@ async function khoFirebase() {
     async sua(id, o) {
       await fs.updateDoc(fs.doc(db, 'members', id), { ...o, suaLuc: fs.serverTimestamp() });
     },
+    async suaNhieu(ds) {
+      const b = fs.writeBatch(db);
+      ds.forEach(({ id, data }) => b.update(fs.doc(db, 'members', id), data));
+      await b.commit();
+    },
     async xoa(ids) {
       const b = fs.writeBatch(db);
       ids.forEach(id => b.delete(fs.doc(db, 'members', id)));
@@ -82,6 +87,10 @@ function khoThu() {
       ds.push({ ...o, id }); luu(); return id;
     },
     async sua(id, o) { ds = ds.map(p => (p.id === id ? { ...p, ...o, id } : p)); luu(); },
+    async suaNhieu(ls) {
+      const m = new Map(ls.map(x => [x.id, x.data]));
+      ds = ds.map(p => (m.has(p.id) ? { ...p, ...m.get(p.id), id: p.id } : p)); luu();
+    },
     async xoa(ids) { ds = ds.filter(p => !ids.includes(p.id)); luu(); },
     async dangNhap(mk) {
       if (mk !== String(CONFIG.demoPassword)) throw { code: 'auth/invalid-credential' };
@@ -143,7 +152,8 @@ function lapChiMuc() {
     }
   }
   const theoNam = (a, b) => (a.namSinh || 9999) - (b.namSinh || 9999) || a.ten.localeCompare(b.ten, 'vi');
-  S.conCua.forEach(l => l.sort(theoNam));
+  const theoThuTu = (a, b) => (a.thuTu ?? 1e9) - (b.thuTu ?? 1e9) || theoNam(a, b);
+  S.conCua.forEach(l => l.sort(theoThuTu));
   S.voChongCua.forEach(l => l.sort(theoNam));
 
   S.doi = new Map();
@@ -190,6 +200,16 @@ function chaMeThu2(p) {
   if (p.parent2Id && S.theoId.has(p.parent2Id)) return S.theoId.get(p.parent2Id);
   const vcs = S.voChongCua.get(p.parentId) || [];
   return vcs.length === 1 ? vcs[0] : null;
+}
+function nhanThuTu(i, n) {
+  if (i === 0) return 'Con cả';
+  if (i === n - 1) return `Con út (thứ ${i + 1})`;
+  return `Con thứ ${i + 1}`;
+}
+async function luuThuTu(ids) {
+  const doi = ids.map((id, i) => ({ id, data: { thuTu: i + 1 } }))
+    .filter(x => S.theoId.get(x.id)?.thuTu !== x.data.thuTu);
+  if (doi.length) await kho.suaNhieu(doi);
 }
 function docNgayGio(s) {
   const m = String(s || '').match(/^\s*(\d{1,2})\s*[\/\-.]\s*(\d{1,2})/);
@@ -401,9 +421,13 @@ function denVaChon(id) {
 /* =========================================================
    Bảng chi tiết
    ========================================================= */
-function nhomDS(tieuDe, ds) {
-  return `<div class="ct-nhom"><h3>${esc(tieuDe)}</h3><ul>${ds.map(x =>
-    `<li><button type="button" data-den="${esc(x.id)}">${esc(x.ten)}<span>${esc(namNgan(x))}</span></button></li>`
+function nhomDS(tieuDe, ds, { danhSo = false, sapXep = false } = {}) {
+  const muiTen = (x, i) => sapXep ? `<span class="sap-xep">
+      <button type="button" data-len="${esc(x.id)}" aria-label="Đưa ${esc(x.ten)} lên trước"${i === 0 ? ' class="an"' : ''}>↑</button>
+      <button type="button" data-xuong="${esc(x.id)}" aria-label="Đưa ${esc(x.ten)} xuống sau"${i === ds.length - 1 ? ' class="an"' : ''}>↓</button>
+    </span>` : '';
+  return `<div class="ct-nhom"><h3>${esc(tieuDe)}</h3>${sapXep ? '<p class="goi-y-sx">Bấm ↑ ↓ để xếp anh chị trước, em sau.</p>' : ''}<ul>${ds.map((x, i) =>
+    `<li${sapXep ? ' class="co-sx"' : ''}><button type="button" data-den="${esc(x.id)}">${danhSo ? `<b class="so">${i + 1}</b>` : ''}<span class="ten-ds">${esc(x.ten)}</span><span>${esc(namNgan(x))}</span></button>${muiTen(x, i)}</li>`
   ).join('')}</ul></div>`;
 }
 
@@ -420,6 +444,10 @@ function moChiTiet(id) {
   const them = (k, v) => { if (v !== null && v !== undefined && v !== '') hang.push(`<dt>${k}</dt><dd>${esc(v)}</dd>`); };
   them('Giới tính', p.gioiTinh === 'nu' ? 'Nữ' : 'Nam');
   them('Năm sinh', p.namSinh);
+  if (!ban && p.parentId && S.theoId.has(p.parentId)) {
+    const ae = S.conCua.get(p.parentId) || [];
+    if (ae.length > 1) them('Thứ tự', `${nhanThuTu(ae.findIndex(c => c.id === p.id), ae.length)} trong ${ae.length} anh chị em`);
+  }
   if (mat) {
     them('Năm mất', p.namMat);
     if (p.ngayGio) them('Ngày giỗ', `${p.ngayGio} âm lịch`);
@@ -431,14 +459,14 @@ function moChiTiet(id) {
     nhom.push(nhomDS(ban.gioiTinh === 'nu' ? 'Vợ' : 'Chồng', [ban]));
     const vcBan = S.voChongCua.get(ban.id) || [];
     const con = (S.conCua.get(ban.id) || []).filter(c => c.parent2Id === p.id || (!c.parent2Id && vcBan.length === 1));
-    if (con.length) nhom.push(nhomDS(`Con (${con.length})`, con));
+    if (con.length) nhom.push(nhomDS(`Con (${con.length})`, con, { danhSo: true }));
   } else {
     const cha = p.parentId && S.theoId.get(p.parentId);
     if (cha) nhom.push(nhomDS('Cha mẹ', [cha, chaMeThu2(p)].filter(Boolean)));
     const vc = S.voChongCua.get(id) || [];
     if (vc.length) nhom.push(nhomDS(nhanVC(p), vc));
     const con = S.conCua.get(id) || [];
-    if (con.length) nhom.push(nhomDS(`Con (${con.length})`, con));
+    if (con.length) nhom.push(nhomDS(`Con (${con.length})`, con, { danhSo: true, sapXep: S.suaDuoc && con.length > 1 }));
   }
 
   const nhan = [];
@@ -637,6 +665,7 @@ function moForm({ mode, id = null, parentId = '', parent2Id = '', spouseOf = nul
     dienChonCha(id);
     f.parentId.value = parentId && S.theoId.has(parentId) ? parentId : '';
     capNhatChonCha2(parent2Id);
+    capNhatChonThuTu();
   }
   capNhatNhomMat();
   $('#hop-form').showModal();
@@ -663,6 +692,27 @@ function capNhatChonCha2(giaTri = '') {
   f.parent2Id.replaceChildren(new Option('Không rõ', ''));
   vcs.forEach(v => f.parent2Id.add(new Option(v.ten, v.id)));
   f.parent2Id.value = giaTri && vcs.some(v => v.id === giaTri) ? giaTri : (vcs.length === 1 ? vcs[0].id : '');
+}
+
+function capNhatChonThuTu() {
+  const f = F();
+  const pid = f.parentId.value, dangSua = S.form && S.form.id;
+  const ds = pid ? (S.conCua.get(pid) || []).filter(c => c.id !== dangSua) : [];
+  $('#nhan-thu-tu').hidden = !ds.length;
+  f.viTri.replaceChildren();
+  if (!ds.length) return;
+  for (let i = 0; i <= ds.length; i++) {
+    const t = i === 0 ? `Con cả (trước ${ds[0].ten})`
+      : i === ds.length ? `Con út, thứ ${i + 1} (sau ${ds[i - 1].ten})`
+      : `Con thứ ${i + 1} (sau ${ds[i - 1].ten}, trước ${ds[i].ten})`;
+    f.viTri.add(new Option(t, String(i)));
+  }
+  let macDinh = ds.length;
+  if (dangSua) {
+    const idx = (S.conCua.get(pid) || []).findIndex(c => c.id === dangSua);
+    if (idx >= 0) macDinh = idx;
+  }
+  f.viTri.value = String(macDinh);
 }
 
 function capNhatNhomMat() {
@@ -710,8 +760,15 @@ async function luuForm(e) {
   nut.disabled = true; nut.textContent = 'Đang lưu…';
   try {
     let moiId = id;
+    const viTri = laMau && o.parentId && !$('#nhan-thu-tu').hidden ? +f.viTri.value : null;
+    const anhChiEm = viTri !== null ? (S.conCua.get(o.parentId) || []).filter(c => c.id !== id).map(c => c.id) : null;
     if (id) await kho.sua(id, o);
     else moiId = await kho.them(o);
+    if (anhChiEm) {
+      const ids = anhChiEm.filter(x => x !== moiId);
+      ids.splice(Math.min(viTri, ids.length), 0, moiId);
+      await luuThuTu(ids);
+    }
     $('#hop-form').close();
     thongBao(id ? 'Đã lưu thay đổi' : `Đã thêm ${ten}`);
     if (!id) denVaChon(moiId); else moChiTiet(id);
@@ -720,6 +777,22 @@ async function luuForm(e) {
     loi(loiGhi(err));
   } finally {
     nut.disabled = false; nut.textContent = 'Lưu';
+  }
+}
+
+async function doiThuTu(conId, buoc) {
+  const ids = (S.conCua.get(S.chon) || []).map(c => c.id);
+  const i = ids.indexOf(conId), j = i + buoc;
+  if (i < 0 || j < 0 || j >= ids.length) return;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  try {
+    await luuThuTu(ids);
+    const ten = S.theoId.get(conId)?.ten || '';
+    thongBao(`${ten} giờ là ${nhanThuTu(j, ids.length).toLowerCase()}`);
+    requestAnimationFrame(() => $(`#chi-tiet [data-${buoc < 0 ? 'len' : 'xuong'}="${CSS.escape(conId)}"]:not(.an)`)?.focus());
+  } catch (err) {
+    console.error(err);
+    thongBao(loiGhi(err), true);
   }
 }
 
@@ -795,6 +868,7 @@ function ganSuKien() {
     if (!b) return;
     if (b.classList.contains('dong')) return dongChiTiet();
     if (b.dataset.den) return denVaChon(b.dataset.den);
+    if ((b.dataset.len || b.dataset.xuong) && S.suaDuoc) return doiThuTu(b.dataset.len || b.dataset.xuong, b.dataset.len ? -1 : 1);
     const id = S.chon, p = S.theoId.get(id);
     if (!p || !S.suaDuoc) return;
     const hd = b.dataset.hd;
@@ -849,7 +923,7 @@ function ganSuKien() {
   $('#form-nguoi').addEventListener('submit', luuForm);
   $('#form-nguoi').addEventListener('input', e => { if (e.target.hasAttribute('aria-invalid')) e.target.removeAttribute('aria-invalid'); });
   $$('[name="tinhTrang"]').forEach(r => r.addEventListener('change', capNhatNhomMat));
-  F().parentId.addEventListener('change', () => capNhatChonCha2());
+  F().parentId.addEventListener('change', () => { capNhatChonCha2(); capNhatChonThuTu(); });
   $$('[data-huy]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
 }
 
