@@ -3,10 +3,10 @@
 // ======================================================
 export const CONFIG = {
   // Tên dòng họ, hiện trên đầu trang: "Gia phả Họ Nguyễn"
-  familyName: "Họ Nguyễn",
+  familyName: "Họ Ngô Đinh",
 
   // Dòng nhỏ dưới tên (quê quán, chi, nhánh…). Để "" nếu không cần.
-  subtitle: "",
+  subtitle: "Hải Hưng - Hải Hậu - Nam Định",
 
   // Email của tài khoản nhập liệu chung đã tạo trong Firebase
   // (Authentication → Users). Phải trùng với email trong firestore.rules.
