@@ -264,6 +264,25 @@ main { flex: 1; position: relative; display: flex; min-height: 0; }
 .sap-xep button.an { visibility: hidden; }
 .goi-y-sx { margin: 0 0 4px; color: var(--chu-phu); font-size: 12.5px; }
 .hang-2 .rong { grid-column: 1 / -1; }
+.o-anh { flex: none; padding: 0; border: 0; background: none; border-radius: 50%; cursor: zoom-in; }
+.o-anh:disabled { cursor: default; opacity: 1; }
+.ct-dau img, .ct-dau .chu-cai { width: 76px; height: 76px; }
+.chon-anh { display: flex; align-items: center; gap: 14px; }
+.xem-anh {
+  flex: none; width: 76px; height: 76px; border-radius: 50%; overflow: hidden;
+  display: grid; place-items: center;
+  background: var(--kim-nhat); color: #8A6A1F;
+}
+.xem-anh img { width: 100%; height: 100%; object-fit: cover; }
+.chon-anh-phai { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.nhan-o { font-size: 14px; font-weight: 500; }
+.hang-nut-anh { display: flex; gap: 8px; flex-wrap: wrap; }
+dialog label.nut { display: inline-flex; flex-direction: row; align-items: center; justify-content: center; font-size: 14px; }
+.an-di { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.hang-nut-anh:focus-within label.nut { outline: 2px solid var(--son); outline-offset: 2px; }
+.hop-anh { width: auto; max-width: min(92vw, 720px); padding: 12px; background: var(--the); cursor: zoom-out; }
+.hop-anh img { display: block; max-width: 100%; max-height: 78vh; margin: 0 auto; border-radius: 8px; }
+.hop-anh p { margin: 10px 0 2px; text-align: center; font-family: var(--font-ten); font-size: 19px; font-weight: 700; }
 .ghi-chu { margin: 18px 0 0; padding: 10px 12px; border-radius: 8px; background: #F6F2EA; font-size: 14px; white-space: pre-wrap; }
 .ct-sua { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; padding-top: 16px; border-top: 1px dashed var(--vien); }
 

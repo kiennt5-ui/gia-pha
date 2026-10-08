@@ -48,11 +48,18 @@ async function khoFirebase() {
       ds.forEach(({ id, data }) => b.update(fs.doc(db, 'members', id), data));
       await b.commit();
     },
-    async xoa(ids) {
+    async xoa(ids, idsAnh = []) {
       const b = fs.writeBatch(db);
       ids.forEach(id => b.delete(fs.doc(db, 'members', id)));
+      idsAnh.forEach(id => b.delete(fs.doc(db, 'anh', id)));
       await b.commit();
     },
+    async layAnh(id) {
+      const s = await fs.getDoc(fs.doc(db, 'anh', id));
+      return s.exists() ? s.data().data : null;
+    },
+    async luuAnh(id, data) { await fs.setDoc(fs.doc(db, 'anh', id), { data, luuLuc: fs.serverTimestamp() }); },
+    async xoaAnh(id) { await fs.deleteDoc(fs.doc(db, 'anh', id)); },
     dangNhap: mk => au.signInWithEmailAndPassword(auth, CONFIG.editorEmail, mk),
     dangXuat: () => au.signOut(auth),
     theoDoiQuyen(cb) {
@@ -69,6 +76,11 @@ function khoThu() {
   let suaDuoc = false;
   try { suaDuoc = sessionStorage.getItem(KHOA + '-sua') === '1'; } catch { /* bỏ qua */ }
   const nghe = [], ngheQuyen = [];
+  let anhThu = {};
+  try { anhThu = JSON.parse(localStorage.getItem(KHOA + '-anh')) || {}; } catch { /* bỏ qua */ }
+  const luuAnhThu = () => {
+    try { localStorage.setItem(KHOA + '-anh', JSON.stringify(anhThu)); return true; } catch { return false; }
+  };
   const phat = () => nghe.forEach(f => f(ds.map(p => ({ ...p }))));
   const luu = () => {
     try { localStorage.setItem(KHOA, JSON.stringify(ds)); } catch { /* bỏ qua */ }
@@ -91,7 +103,16 @@ function khoThu() {
       const m = new Map(ls.map(x => [x.id, x.data]));
       ds = ds.map(p => (m.has(p.id) ? { ...p, ...m.get(p.id), id: p.id } : p)); luu();
     },
-    async xoa(ids) { ds = ds.filter(p => !ids.includes(p.id)); luu(); },
+    async xoa(ids, idsAnh = []) {
+      ds = ds.filter(p => !ids.includes(p.id));
+      idsAnh.forEach(id => delete anhThu[id]); luuAnhThu(); luu();
+    },
+    async layAnh(id) { return anhThu[id] || null; },
+    async luuAnh(id, data) {
+      anhThu[id] = data;
+      if (!luuAnhThu()) { delete anhThu[id]; throw { code: 'bo-nho-day' }; }
+    },
+    async xoaAnh(id) { delete anhThu[id]; luuAnhThu(); },
     async dangNhap(mk) {
       if (mk !== String(CONFIG.demoPassword)) throw { code: 'auth/invalid-credential' };
       datQuyen(true);
@@ -135,7 +156,7 @@ function duLieuMau() {
    ========================================================= */
 const S = {
   ds: [], theoId: new Map(), conCua: new Map(), voChongCua: new Map(), doi: new Map(), viTri: new Map(),
-  thuGon: new Set(), chon: null, loc: 'tat-ca', suaDuoc: false, view: 'cay', daVua: false, form: null, loiTai: ''
+  thuGon: new Set(), anh: new Map(), chon: null, loc: 'tat-ca', suaDuoc: false, view: 'cay', daVua: false, form: null, loiTai: ''
 };
 let kho = null;
 
@@ -210,6 +231,34 @@ async function luuThuTu(ids) {
   const doi = ids.map((id, i) => ({ id, data: { thuTu: i + 1 } }))
     .filter(x => S.theoId.get(x.id)?.thuTu !== x.data.thuTu);
   if (doi.length) await kho.suaNhieu(doi);
+}
+async function thuNhoAnh(file) {
+  if (!file || !/^image\//.test(file.type)) throw new Error('khong-phai-anh');
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, hong) => { const i = new Image(); i.onload = () => ok(i); i.onerror = hong; i.src = url; });
+    const MAX = 640;
+    const k = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    let q = 0.85, d = c.toDataURL('image/jpeg', q);
+    while (d.length > 600000 && q > 0.4) { q -= 0.15; d = c.toDataURL('image/jpeg', q); }
+    return d;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+async function layAnhNguoi(p) {
+  if (!p.coAnh) return /^https?:\/\//i.test(p.anh || '') ? p.anh : null;
+  const c = S.anh.get(p.id);
+  if (c && c.v === p.anhV) return c.data;
+  const data = await kho.layAnh(p.id);
+  if (data) S.anh.set(p.id, { v: p.anhV, data });
+  return data;
 }
 function docNgayGio(s) {
   const m = String(s || '').match(/^\s*(\d{1,2})\s*[\/\-.]\s*(\d{1,2})/);
@@ -438,7 +487,7 @@ function moChiTiet(id) {
 
   const ban = banDoi(p), mat = !!p.daMat, doi = S.doi.get(id);
   const kyTu = p.ten.trim().split(/\s+/).pop()?.[0] || '?';
-  const anh = /^https?:\/\//i.test(p.anh || '') ? `<img src="${esc(p.anh)}" alt="">` : `<div class="chu-cai" aria-hidden="true">${esc(kyTu)}</div>`;
+  const anh = `<button type="button" class="o-anh" data-xem-anh aria-label="Xem ảnh lớn của ${esc(p.ten)}" disabled><div class="chu-cai" aria-hidden="true">${esc(kyTu)}</div></button>`;
 
   const hang = [];
   const them = (k, v) => { if (v !== null && v !== undefined && v !== '') hang.push(`<dt>${k}</dt><dd>${esc(v)}</dd>`); };
@@ -495,6 +544,19 @@ function moChiTiet(id) {
     ${p.ghiChu ? `<p class="ghi-chu">${esc(p.ghiChu)}</p>` : ''}
     ${sua}`;
   pn.hidden = false;
+  if (p.coAnh || p.anh) {
+    layAnhNguoi(p).then(src => {
+      if (!src || S.chon !== id) return;
+      const o = pn.querySelector('.o-anh');
+      if (!o) return;
+      o.innerHTML = '';
+      const img = new Image();
+      img.alt = '';
+      img.src = src;
+      o.appendChild(img);
+      o.disabled = false;
+    }).catch(err => console.error(err));
+  }
 }
 
 function dongChiTiet() {
@@ -640,7 +702,12 @@ function moForm({ mode, id = null, parentId = '', parent2Id = '', spouseOf = nul
   const p = id ? S.theoId.get(id) : null;
   if (p && mode === 'spouse') spouseOf = p.spouseOf;
   if (p && mode === 'blood') { parentId = p.parentId || ''; parent2Id = p.parent2Id || ''; }
-  S.form = { mode, id, spouseOf };
+  S.form = { mode, id, spouseOf, anhMoi: null, boAnh: false };
+  $('#loi-anh').textContent = '';
+  veXemAnh(null);
+  if (p && (p.coAnh || p.anh)) {
+    layAnhNguoi(p).then(src => { if (S.form && S.form.id === id && !S.form.anhMoi && !S.form.boAnh) veXemAnh(src); }).catch(() => {});
+  }
 
   const ban = spouseOf ? S.theoId.get(spouseOf) : null;
   const cha = parentId ? S.theoId.get(parentId) : null;
@@ -653,7 +720,6 @@ function moForm({ mode, id = null, parentId = '', parent2Id = '', spouseOf = nul
     f.namMat.value = p.namMat || '';
     f.ngayGio.value = p.ngayGio || '';
     f.noiAnTang.value = p.noiAnTang || '';
-    f.anh.value = p.anh || '';
     f.ghiChu.value = p.ghiChu || '';
   }
   const gt = p ? (p.gioiTinh || 'nam') : (ban ? (ban.gioiTinh === 'nu' ? 'nam' : 'nu') : 'nam');
@@ -692,6 +758,29 @@ function capNhatChonCha2(giaTri = '') {
   f.parent2Id.replaceChildren(new Option('Không rõ', ''));
   vcs.forEach(v => f.parent2Id.add(new Option(v.ten, v.id)));
   f.parent2Id.value = giaTri && vcs.some(v => v.id === giaTri) ? giaTri : (vcs.length === 1 ? vcs[0].id : '');
+}
+
+function veXemAnh(src) {
+  const o = $('#xem-anh');
+  o.innerHTML = src ? `<img src="${esc(src)}" alt="Ảnh đã chọn">` : '<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><circle cx="12" cy="9" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4.5 20c1.4-3.6 4.2-5.4 7.5-5.4s6.1 1.8 7.5 5.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  $('#nut-chon-anh').textContent = src ? 'Đổi ảnh' : 'Chọn ảnh';
+  $('#nut-bo-anh').hidden = !src;
+}
+
+async function chonAnh(file) {
+  $('#loi-anh').textContent = '';
+  if (!file) return;
+  const nut = $('#nut-chon-anh');
+  nut.textContent = 'Đang xử lý…';
+  try {
+    const d = await thuNhoAnh(file);
+    S.form.anhMoi = d; S.form.boAnh = false;
+    veXemAnh(d);
+  } catch (err) {
+    console.error(err);
+    $('#loi-anh').textContent = 'Không đọc được ảnh này. Hãy chọn ảnh JPG hoặc PNG.';
+    veXemAnh(S.form.anhMoi);
+  }
 }
 
 function capNhatChonThuTu() {
@@ -743,10 +832,10 @@ async function luuForm(e) {
     if (ngayGio && !docNgayGio(ngayGio)) return loi('Ngày giỗ ghi theo dạng ngày/tháng âm lịch, ví dụ 15/7.', 'ngayGio');
     noiAnTang = v('noiAnTang');
   }
-  const anh = v('anh');
-  if (anh && !/^https?:\/\//i.test(anh)) return loi('Link ảnh cần bắt đầu bằng https://', 'anh');
 
-  const { mode, id, spouseOf } = S.form;
+  const { mode, id, spouseOf, anhMoi, boAnh } = S.form;
+  const cu = id ? S.theoId.get(id) : null;
+  const anh = boAnh ? '' : (cu && cu.anh) || '';
   const laMau = mode === 'blood';
   const o = {
     ten, gioiTinh: f.querySelector('[name="gioiTinh"]:checked').value,
@@ -762,15 +851,38 @@ async function luuForm(e) {
     let moiId = id;
     const viTri = laMau && o.parentId && !$('#nhan-thu-tu').hidden ? +f.viTri.value : null;
     const anhChiEm = viTri !== null ? (S.conCua.get(o.parentId) || []).filter(c => c.id !== id).map(c => c.id) : null;
-    if (id) await kho.sua(id, o);
-    else moiId = await kho.them(o);
+    if (id) {
+      if (boAnh) { o.coAnh = false; o.anhV = null; }
+      await kho.sua(id, o);
+    } else {
+      moiId = await kho.them({ ...o, coAnh: false });
+    }
+    let loiAnh = null;
+    if (anhMoi) {
+      try {
+        await kho.luuAnh(moiId, anhMoi);
+        const v = Date.now();
+        S.anh.set(moiId, { v, data: anhMoi });
+        await kho.sua(moiId, { coAnh: true, anhV: v });
+      } catch (err) { console.error(err); loiAnh = err; }
+    } else if (boAnh && cu && cu.coAnh) {
+      kho.xoaAnh(id).catch(err => console.error(err));
+      S.anh.delete(id);
+    }
     if (anhChiEm) {
       const ids = anhChiEm.filter(x => x !== moiId);
       ids.splice(Math.min(viTri, ids.length), 0, moiId);
       await luuThuTu(ids);
     }
     $('#hop-form').close();
-    thongBao(id ? 'Đã lưu thay đổi' : `Đã thêm ${ten}`);
+    if (loiAnh) {
+      thongBao(loiAnh.code === 'permission-denied'
+        ? 'Đã lưu thông tin nhưng chưa lưu được ảnh: cần cập nhật Rules trong Firebase (xem hướng dẫn).'
+        : loiAnh.code === 'bo-nho-day' ? 'Đã lưu thông tin nhưng bộ nhớ bản thử đã đầy, không lưu thêm ảnh được.'
+        : 'Đã lưu thông tin nhưng chưa lưu được ảnh. Thử chọn lại ảnh sau.', true);
+    } else {
+      thongBao(id ? 'Đã lưu thay đổi' : `Đã thêm ${ten}`);
+    }
     if (!id) denVaChon(moiId); else moChiTiet(id);
   } catch (err) {
     console.error(err);
@@ -810,7 +922,8 @@ async function xoaNguoi(id) {
     : `Xóa ${p.ten} khỏi gia phả? Việc này không hoàn tác được.`;
   if (!window.confirm(hoi)) return;
   try {
-    await kho.xoa([id, ...vc.map(x => x.id)]);
+    const tatCa = [p, ...vc];
+    await kho.xoa(tatCa.map(x => x.id), tatCa.filter(x => x.coAnh).map(x => x.id));
     dongChiTiet();
     thongBao(`Đã xóa ${p.ten}`);
   } catch (err) {
@@ -918,6 +1031,19 @@ function ganSuKien() {
     }
   });
   $('#nut-them').addEventListener('click', () => moForm({ mode: 'blood', parentId: S.chon && !S.theoId.get(S.chon)?.spouseOf ? S.chon : '' }));
+
+  // Ảnh
+  $('#file-anh').addEventListener('change', e => { chonAnh(e.target.files[0]); e.target.value = ''; });
+  $('#nut-bo-anh').addEventListener('click', () => { S.form.anhMoi = null; S.form.boAnh = true; veXemAnh(null); });
+  $('#chi-tiet').addEventListener('click', e => {
+    const o = e.target.closest('[data-xem-anh]');
+    const img = o && o.querySelector('img');
+    if (!img) return;
+    $('#anh-lon').src = img.src;
+    $('#anh-lon-ten').textContent = S.theoId.get(S.chon)?.ten || '';
+    $('#hop-anh').showModal();
+  });
+  $('#hop-anh').addEventListener('click', () => $('#hop-anh').close());
 
   // Form
   $('#form-nguoi').addEventListener('submit', luuForm);

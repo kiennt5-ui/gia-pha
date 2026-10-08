@@ -9,5 +9,11 @@ service cloud.firestore {
       allow write: if request.auth != null
                    && request.auth.token.email == "nhaplieu@giapha.app";
     }
+    match /anh/{id} {
+      // Ảnh của từng người: ai cũng xem được, chỉ tài khoản nhập liệu được tải lên
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.auth.token.email == "nhaplieu@giapha.app";
+    }
   }
 }

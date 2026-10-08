@@ -127,9 +127,19 @@
         </label>
       </div>
 
-      <label><span>Link ảnh <span class="goi-y">(không bắt buộc)</span></span>
-        <input name="anh" type="url" maxlength="500" placeholder="https://…">
-      </label>
+      <div class="chon-anh">
+        <div class="xem-anh" id="xem-anh"></div>
+        <div class="chon-anh-phai">
+          <span class="nhan-o">Ảnh <span class="goi-y">(không bắt buộc)</span></span>
+          <div class="hang-nut-anh">
+            <label class="nut nut-nho" for="file-anh"><span id="nut-chon-anh">Chọn ảnh</span></label>
+            <input type="file" id="file-anh" accept="image/*" class="an-di">
+            <button type="button" class="nut nut-nho nut-nguy" id="nut-bo-anh" hidden>Bỏ ảnh</button>
+          </div>
+          <span class="goi-y">Chọn từ máy hoặc chụp bằng điện thoại. Ảnh được thu nhỏ trước khi lưu.</span>
+          <p class="loi" id="loi-anh" role="alert"></p>
+        </div>
+      </div>
 
       <label>Ghi chú
         <textarea name="ghiChu" rows="3" maxlength="1000" placeholder="Công việc, quê quán, chuyện đáng nhớ…"></textarea>
@@ -141,6 +151,12 @@
         <button type="submit" class="nut nut-chinh" id="form-luu">Lưu</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- Xem ảnh lớn -->
+  <dialog id="hop-anh" class="hop-anh" aria-label="Ảnh">
+    <img id="anh-lon" alt="">
+    <p id="anh-lon-ten"></p>
   </dialog>
 
   <div id="thong-bao" class="thong-bao" role="status"></div>

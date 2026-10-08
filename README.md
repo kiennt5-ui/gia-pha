@@ -91,7 +91,11 @@ Web không cho xóa người còn con trong cây, và luôn hỏi lại trước
 Web chỉ có các mục: tên, năm sinh, năm mất, ngày giỗ, nơi an táng, ảnh, ghi chú. Ai có link cũng xem được, nên **không ghi số điện thoại, địa chỉ nhà hay giấy tờ** của người còn sống.
 
 **Thêm ảnh thế nào?**
-Dán link ảnh bắt đầu bằng `https://` vào ô *Link ảnh*. Ví dụ, bạn có thể tải ảnh lên thư mục `images/` trong repo GitHub, rồi dùng link dạng `https://ten-cua-ban.github.io/gia-pha/images/ten-anh.jpg`.
+Khi thêm hoặc sửa một người, bấm **Chọn ảnh**:
+- Trên máy tính, chọn ảnh từ máy.
+- Trên điện thoại, chọn từ thư viện hoặc chụp luôn.
+
+Ảnh được tự thu nhỏ rồi lưu vào Firebase. Không cần link, không tốn thêm phí. Bấm vào ảnh trong phần chi tiết để xem ảnh lớn.
 
 **Vợ hai, con của vợ nào?**
 Thêm nhiều vợ/chồng cho một người được. Khi thêm con, chọn mẹ (hoặc cha) ở ô thứ hai.
