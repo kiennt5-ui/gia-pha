@@ -1,16 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /members/{id} {
-      // Ai có link cũng xem được gia phả
-      allow read: if true;
-      // Chỉ tài khoản nhập liệu chung mới được thêm / sửa / xóa.
-      // ĐỔI email dưới đây cho trùng với editorEmail trong config.js
-      allow write: if request.auth != null
-                   && request.auth.token.email == "nhaplieu@giapha.app";
-    }
-    match /anh/{id} {
-      // Ảnh của từng người: ai cũng xem được, chỉ tài khoản nhập liệu được tải lên
+    // Áp dụng cho mọi dữ liệu: gia phả, người, ảnh.
+    // Ai có link cũng xem được; chỉ tài khoản nhập liệu chung mới được thêm / sửa / xóa.
+    // ĐỔI email dưới đây cho trùng với editorEmail trong config.js
+    match /{document=**} {
       allow read: if true;
       allow write: if request.auth != null
                    && request.auth.token.email == "nhaplieu@giapha.app";

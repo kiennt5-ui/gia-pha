@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Gia phả</title>
-  <meta name="description" content="Cây gia phả dòng họ">
+  <title>Tủ gia phả</title>
+  <meta name="description" content="Gia phả các dòng họ trong gia đình">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%238C1D18'/%3E%3Cpath d='M32 14v36M32 30l-12 10M32 30l12 10M32 22l-9-6M32 22l9-6' stroke='%23C9A04A' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,14 +15,15 @@
 <body>
   <header class="bia">
     <div class="bia-trai">
-      <div class="an-son" aria-hidden="true">譜</div>
-      <div>
-        <h1 id="ten-dong-ho">Gia phả</h1>
-        <p id="phu-de"></p>
+      <button type="button" id="ve-nha" class="an-son" aria-label="Về tủ gia phả">譜</button>
+      <div class="bia-chu">
+        <p id="tieu-de-nho" class="tieu-de-nho"></p>
+        <h1 id="ten-dong-ho">Tủ gia phả</h1>
+        <p id="phu-de" class="phu-de"></p>
       </div>
     </div>
     <div class="tim">
-      <input type="search" id="tim" placeholder="Tìm theo tên" autocomplete="off" aria-label="Tìm người trong gia phả">
+      <input type="search" id="tim" placeholder="Tìm theo tên" autocomplete="off" aria-label="Tìm người trong các gia phả">
       <ul id="ket-qua" hidden></ul>
     </div>
     <button id="nut-sua" class="nut nut-vang" type="button">Chỉnh sửa</button>
@@ -30,7 +31,8 @@
 
   <div id="bang-demo" class="bang-demo" hidden></div>
 
-  <nav class="thanh-cong-cu" aria-label="Công cụ">
+  <nav id="thanh-cong-cu" class="thanh-cong-cu" aria-label="Công cụ" hidden>
+    <div id="chon-gp" class="chon-gp" role="group" aria-label="Chọn gia phả" hidden></div>
     <div class="tabs" role="tablist">
       <button type="button" role="tab" data-view="cay" aria-selected="true">Cây gia phả</button>
       <button type="button" role="tab" data-view="gio" aria-selected="false">Ngày giỗ</button>
@@ -41,11 +43,13 @@
       <button type="button" data-loc="mat" aria-pressed="false">Đã mất</button>
     </div>
     <button id="nut-them" class="nut nut-nho" type="button" hidden>+ Thêm người</button>
+    <button id="nut-sua-gp" class="nut nut-nho" type="button" hidden>Sửa gia phả</button>
     <div class="thong-ke" id="thong-ke"></div>
   </nav>
 
   <main>
-    <section id="view-cay" class="view-cay">
+    <section id="view-nha" class="view-nha"><p class="dang-tai">Đang mở tủ gia phả…</p></section>
+    <section id="view-cay" class="view-cay" hidden>
       <svg id="cay" aria-label="Sơ đồ cây gia phả. Kéo để di chuyển, cuộn hoặc chụm hai ngón để phóng to."></svg>
       <div class="dieu-khien-zoom">
         <button type="button" id="zoom-in" aria-label="Phóng to">+</button>
@@ -111,7 +115,7 @@
           <input name="ngayGio" maxlength="24" placeholder="15/7">
         </label>
         <label class="rong">Nơi an táng
-          <input name="noiAnTang" maxlength="120" placeholder="Nghĩa trang làng Phú Thọ">
+          <input name="noiAnTang" maxlength="120" placeholder="Nghĩa trang làng">
         </label>
       </div>
 
@@ -126,6 +130,10 @@
           <select name="viTri"></select>
         </label>
       </div>
+
+      <label id="nhan-lien-ket" hidden><span>Cũng có trong gia phả khác <span class="goi-y">(gia đình nơi người này sinh ra)</span></span>
+        <select name="lienKet"></select>
+      </label>
 
       <div class="chon-anh">
         <div class="xem-anh" id="xem-anh"></div>
@@ -149,6 +157,45 @@
       <div class="hang-nut">
         <button type="button" class="nut" data-huy>Hủy</button>
         <button type="submit" class="nut nut-chinh" id="form-luu">Lưu</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Hộp thêm / sửa cuốn gia phả -->
+  <dialog id="hop-gp">
+    <form id="form-gp" novalidate>
+      <h2 id="gp-tieu-de">Thêm gia phả</h2>
+      <label>Tên dòng họ
+        <input name="ten" maxlength="60" placeholder="Họ Đinh">
+      </label>
+      <div class="hang-2">
+        <label><span>Gọi là <span class="goi-y">(bên nội, bên ngoại…)</span></span>
+          <input name="nhan" maxlength="30" list="ds-nhan" placeholder="Bên ngoại">
+        </label>
+        <label><span>Quê quán <span class="goi-y">(không bắt buộc)</span></span>
+          <input name="phuDe" maxlength="80" placeholder="Xã, huyện, tỉnh">
+        </label>
+      </div>
+      <datalist id="ds-nhan">
+        <option value="Bên nội"></option>
+        <option value="Bên ngoại"></option>
+        <option value="Bên nội của vợ"></option>
+        <option value="Bên ngoại của vợ"></option>
+      </datalist>
+      <fieldset class="chon-mau">
+        <legend>Màu bìa</legend>
+        <label title="Đỏ son"><input type="radio" name="mau" value="son"><span class="o-mau" style="--m:#8C1D18"></span><span class="an-di">Đỏ son</span></label>
+        <label title="Xanh chàm"><input type="radio" name="mau" value="cham"><span class="o-mau" style="--m:#1F3A5F"></span><span class="an-di">Xanh chàm</span></label>
+        <label title="Xanh rêu"><input type="radio" name="mau" value="reu"><span class="o-mau" style="--m:#2E4A3B"></span><span class="an-di">Xanh rêu</span></label>
+        <label title="Nâu gụ"><input type="radio" name="mau" value="nau"><span class="o-mau" style="--m:#5B3A24"></span><span class="an-di">Nâu gụ</span></label>
+        <label title="Tím than"><input type="radio" name="mau" value="tim"><span class="o-mau" style="--m:#3E2A4F"></span><span class="an-di">Tím than</span></label>
+      </fieldset>
+      <p class="loi" id="gp-loi" role="alert"></p>
+      <div class="hang-nut">
+        <button type="button" class="nut nut-nguy" id="gp-xoa" hidden>Xóa gia phả</button>
+        <span class="gian"></span>
+        <button type="button" class="nut" data-huy>Hủy</button>
+        <button type="submit" class="nut nut-chinh">Lưu</button>
       </div>
     </form>
   </dialog>

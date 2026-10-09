@@ -44,7 +44,7 @@ Lúc này web chạy **bản thử** với dữ liệu mẫu:
    - Chọn vị trí `asia-southeast1 (Singapore)` cho nhanh, chọn **production mode**.
 5. **Dán quy tắc bảo mật:**
    - Trong Firestore, mở tab **Rules**.
-   - Xóa hết nội dung cũ, dán toàn bộ nội dung file `firestore.rules`, rồi bấm **Publish**.
+   - Xóa hết nội dung cũ, dán toàn bộ nội dung file `firestore.rules`, rồi bấm **Publish**. Quy tắc này áp dụng cho mọi dữ liệu (gia phả, người, ảnh), nên sau này thêm tính năng sẽ không phải sửa lại.
    - Nếu bạn dùng email khác ở bước 3, sửa email trong rules cho trùng.
 6. **Lấy cấu hình:**
    - Bấm biểu tượng bánh răng → **Project settings**.
@@ -96,6 +96,17 @@ Khi thêm hoặc sửa một người, bấm **Chọn ảnh**:
 - Trên điện thoại, chọn từ thư viện hoặc chụp luôn.
 
 Ảnh được tự thu nhỏ rồi lưu vào Firebase. Không cần link, không tốn thêm phí. Bấm vào ảnh trong phần chi tiết để xem ảnh lớn.
+
+**Thêm gia phả bên ngoại thế nào?**
+1. Bấm biểu tượng 譜 ở góc trái để về **Tủ gia phả**.
+2. Bật **Chỉnh sửa**, rồi bấm **Thêm gia phả**.
+3. Đặt tên dòng họ, chọn "Gọi là" (bên ngoại…) và màu bìa.
+
+**Nối hai gia phả với nhau:** ví dụ mẹ bạn vừa là vợ trong gia phả bên nội, vừa là con trong gia phả bên ngoại.
+1. Mở thẻ của mẹ trong gia phả bên nội, chọn **Sửa thông tin**.
+2. Ở ô **Cũng có trong gia phả khác**, chọn tên mẹ trong gia phả bên ngoại.
+
+Từ đó, cả hai bên đều có nút để chuyển qua lại.
 
 **Vợ hai, con của vợ nào?**
 Thêm nhiều vợ/chồng cho một người được. Khi thêm con, chọn mẹ (hoặc cha) ở ô thứ hai.
